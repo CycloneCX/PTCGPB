@@ -2,37 +2,47 @@
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
-settingsPath := A_ScriptDir "\..\..\Settings.ini"
-
-IniRead, instanceLaunchDelay, %settingsPath%, UserSettings, instanceLaunchDelay, 5
-IniRead, waitAfterBulkLaunch, %settingsPath%, UserSettings, waitAfterBulkLaunch, 40000
-IniRead, Instances, %settingsPath%, UserSettings, Instances, 1
-IniRead, folderPath, %settingsPath%, UserSettings, folderPath, C:\Program Files\Netease
-IniRead, runMain, %settingsPath%, UserSettings, runMain, 1
-IniRead, Mains, %settingsPath%, UserSettings, Mains, 1
-
-mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
-if !FileExist(mumuFolder)
-    mumuFolder = %folderPath%\MuMu Player 12
-if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
-    mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
-if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
-    mumuFolder = %folderPath%\MuMu Player 12
-if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
-    mumuFolder = %folderPath%\MuMuPlayer
-if !FileExist(mumuFolder){
-    MsgBox, 16, , Double check your folder path! It should be the one that contains the MuMuPlayer 12 folder! `nDefault is just C:\Program Files\Netease
-    ExitApp
-}
-
-; Loop through each instance, check if it's started, and start it if it's not
-launched := 0
-
-; Allows launching Main2, Main3, etc.
-if(runMain && Mains > 0)
+; Only run main code if this script is executed directly (not included)
+if (A_ScriptName = "LaunchAllMumu.ahk")
 {
-    Loop %Mains% {
-        instanceNum := "Main" . (A_Index > 1 ? A_Index : "")
+    settingsPath := A_ScriptDir "\..\..\Settings.ini"
+
+    IniRead, instanceLaunchDelay, %settingsPath%, UserSettings, instanceLaunchDelay, 5
+    IniRead, waitAfterBulkLaunch, %settingsPath%, UserSettings, waitAfterBulkLaunch, 40000
+    IniRead, Instances, %settingsPath%, UserSettings, Instances, 1
+    IniRead, folderPath, %settingsPath%, UserSettings, folderPath, C:\Program Files\Netease
+    IniRead, runMain, %settingsPath%, UserSettings, runMain, 1
+    IniRead, Mains, %settingsPath%, UserSettings, Mains, 1
+
+    mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
+    if !FileExist(mumuFolder)
+        mumuFolder = %folderPath%\MuMu Player 12
+    if !FileExist(mumuFolder){
+        MsgBox, 16, , Double check your folder path! It should be the one that contains the MuMuPlayer 12 folder! `nDefault is just C:\Program Files\Netease
+        ExitApp
+    }
+
+    ; Loop through each instance, check if it's started, and start it if it's not
+    launched := 0
+
+    ; Allows launching Main2, Main3, etc.
+    if(runMain && Mains > 0)
+    {
+        Loop %Mains% {
+            instanceNum := "Main" . (A_Index > 1 ? A_Index : "")
+            pID := checkInstance(instanceNum)
+            if not pID {
+                launchInstance(instanceNum)
+
+                sleepTime := instanceLaunchDelay * 1000
+                Sleep, % sleepTime
+                launched := launched + 1
+            }
+        }
+    }
+
+    Loop %Instances% {
+        instanceNum := Format("{:u}", A_Index)
         pID := checkInstance(instanceNum)
         if not pID {
             launchInstance(instanceNum)
@@ -42,25 +52,24 @@ if(runMain && Mains > 0)
             launched := launched + 1
         }
     }
+
+    ExitApp
 }
 
-Loop %Instances% {
-    instanceNum := Format("{:u}", A_Index)
-    pID := checkInstance(instanceNum)
-    if not pID {
-        launchInstance(instanceNum)
 
-        sleepTime := instanceLaunchDelay * 1000
-        Sleep, % sleepTime
-        launched := launched + 1
-    }
+
+
+
+; Initialize mumuFolder for use when included as library
+InitMumuFolder() {
+    global mumuFolder
+    IniRead, folderPath, %A_ScriptDir%\..\..\Settings.ini, UserSettings, folderPath, C:\Program Files\Netease
+
+    mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
+    if !FileExist(mumuFolder)
+        mumuFolder = %folderPath%\MuMu Player 12
+    return mumuFolder
 }
-
-ExitApp
-
-
-
-
 
 killInstance(instanceNum := "")
 {
@@ -86,6 +95,11 @@ launchInstance(instanceNum := "")
 {
     global mumuFolder
 
+    ; Initialize mumuFolder if not already set
+    if (!mumuFolder) {
+        InitMumuFolder()
+    }
+
     if(instanceNum != "") {
         mumuNum := getMumuInstanceNumFromPlayerName(instanceNum)
         if(mumuNum != "") {
@@ -100,6 +114,11 @@ launchInstance(instanceNum := "")
 
 getMumuInstanceNumFromPlayerName(scriptName := "") {
     global mumuFolder
+
+    ; Initialize mumuFolder if not already set
+    if (!mumuFolder) {
+        InitMumuFolder()
+    }
 
     if(scriptName == "") {
         return ""

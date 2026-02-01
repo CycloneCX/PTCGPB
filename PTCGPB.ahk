@@ -1,4 +1,4 @@
-﻿DisplayPackStatus(Message, X := 0, Y := 625) {
+DisplayPackStatus(Message, X := 0, Y := 625) {
    global SelectedMonitorIndex
    static GuiName := "ScreenPackStatus"
    
@@ -106,14 +106,14 @@ OnError("ErrorHandler")
 
 githubUser := "kevnITG"
    ,repoName := "PTCGPB"
-   ,localVersion := "v9.4.2"
+   ,localVersion := "v9.3.6"
    ,scriptFolder := A_ScriptDir
    ,zipPath := A_Temp . "\update.zip"
    ,extractPath := A_Temp . "\update"
    ,intro := "Fantastical Parade"
 
-global GUI_WIDTH := 790
-global GUI_HEIGHT := 370
+global GUI_WIDTH := 850
+global GUI_HEIGHT := 420
 global MainGuiName
 global MuMuv5
 
@@ -176,7 +176,8 @@ NextStep:
       FileDelete, %saveSignalFile%
    } else {
       KillADBProcesses()
-      CheckForUpdate()
+      if (checkForUpdates)
+         CheckForUpdate()
    }
    
    scriptName := StrReplace(A_ScriptName, ".ahk")
@@ -217,7 +218,7 @@ NextStep:
    }
 
    sectionColor := "cWhite"
-   Gui, Add, GroupBox, x5 y50 w240 h130 %sectionColor%, % currentDictionary.InstanceSettings
+   Gui, Add, GroupBox, x5 y50 w240 h155 %sectionColor%, % currentDictionary.InstanceSettings
    Gui, Add, Text, x20 y75 %sectionColor%, % currentDictionary.Txt_Instances
    Gui, Add, Edit, vInstances w50 x125 y75 h20 -E0x200 Background2A2A2A cWhite Center, %Instances%
    Gui, Add, Text, x20 y100 %sectionColor%, % currentDictionary.Txt_Columns
@@ -228,11 +229,14 @@ NextStep:
    Gui, Add, Text, x20 y125 %sectionColor%, % currentDictionary.Txt_InstanceStartDelay
    Gui, Add, Edit, vinstanceStartDelay w50 x125 y125 h20 -E0x200 Background2A2A2A cWhite Center, %instanceStartDelay%
 
-   Gui, Add, Checkbox, % (runMain ? "Checked" : "") " vrunMain gmainSettings x20 y150 " . sectionColor, % currentDictionary.Txt_runMain
-   Gui, Add, Edit, % "vMains w50 x125 y150 h20 -E0x200 Background2A2A2A " . sectionColor . " Center" . (runMain ? "" : " Hidden"), %Mains%
+   Gui, Add, Text, x20 y150 %sectionColor%, Runs til Restart
+   Gui, Add, Edit, vmumuRestartRuns w50 x125 y150 h20 -E0x200 Background2A2A2A cWhite Center, %mumuRestartRuns%
+
+   Gui, Add, Checkbox, % (runMain ? "Checked" : "") " vrunMain gmainSettings x20 y175 " . sectionColor, % currentDictionary.Txt_runMain
+   Gui, Add, Edit, % "vMains w50 x125 y175 h20 -E0x200 Background2A2A2A " . sectionColor . " Center" . (runMain ? "" : " Hidden"), %Mains%
 
    sectionColor := "c39FF14"
-   Gui, Add, GroupBox, x5 y185 w240 h175 %sectionColor%, % currentDictionary.BotSettings
+   Gui, Add, GroupBox, x5 y210 w240 h175 %sectionColor%, % currentDictionary.BotSettings
 
    if (deleteMethod = "Create Bots (13P)")
    defaultDelete := 1
@@ -242,14 +246,14 @@ NextStep:
    defaultDelete := 2
    else if (deleteMethod = "Inject Wonderpick 96P+")
    defaultDelete := 3
-   Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x20 y210 w200 Background2A2A2A cWhite, Create Bots (13P)|Inject 13P+|Inject Wonderpick 96P+
+   Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x20 y235 w200 Background2A2A2A cWhite, Create Bots (13P)|Inject 13P+|Inject Wonderpick 96P+
 
-   Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x20 y240 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+") ? "" : " Hidden"), % currentDictionary.Txt_packMethod
-   ; Gui, Add, Checkbox, % (nukeAccount ? "Checked" : "") " vnukeAccount x20 y240 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? "": " Hidden"), % currentDictionary.Txt_nukeAccount
-   Gui, Add, Checkbox, % (openExtraPack ? "Checked" : "") " vopenExtraPack gopenExtraPackSettings x20 y260 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+" || deleteMethod = "Inject 13P+") ? "" : " Hidden"), % currentDictionary.Txt_openExtraPack
-   Gui, Add, Checkbox, % (spendHourGlass ? "Checked" : "") " vspendHourGlass gspendHourGlassSettings x20 y280 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? " Hidden":""), % currentDictionary.Txt_spendHourGlass
+   Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x20 y265 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+") ? "" : " Hidden"), % currentDictionary.Txt_packMethod
+   ; Gui, Add, Checkbox, % (nukeAccount ? "Checked" : "") " vnukeAccount x20 y265 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? "": " Hidden"), % currentDictionary.Txt_nukeAccount
+   Gui, Add, Checkbox, % (openExtraPack ? "Checked" : "") " vopenExtraPack gopenExtraPackSettings x20 y265 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+" || deleteMethod = "Inject 13P+") ? "" : " Hidden"), % currentDictionary.Txt_openExtraPack
+   Gui, Add, Checkbox, % (spendHourGlass ? "Checked" : "") " vspendHourGlass gspendHourGlassSettings x20 y290 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? " Hidden":""), % currentDictionary.Txt_spendHourGlass
 
-   Gui, Add, Text, x20 y305 %sectionColor% vSortByText, % currentDictionary.SortByText
+   Gui, Add, Text, x20 y315 %sectionColor% vSortByText, % currentDictionary.SortByText
    sortOption := 1
    if (injectSortMethod = "ModifiedDesc")
    sortOption := 2
@@ -257,10 +261,10 @@ NextStep:
    sortOption := 3
    else if (injectSortMethod = "PacksDesc")
    sortOption := 4
-   Gui, Add, DropDownList, vSortByDropdown gSortByDropdownHandler choose%sortOption% x20 y325 w130 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
+   Gui, Add, DropDownList, vSortByDropdown gSortByDropdownHandler choose%sortOption% x20 y335 w130 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
 
-   Gui, Add, Text, x20 y260 %sectionColor% vAccountNameText, % currentDictionary.Txt_AccountName
-   Gui, Add, Edit, vAccountName w90 x130 y260 h20 -E0x200 Background2A2A2A cWhite Center, %AccountName%
+   Gui, Add, Text, x20 y315 %sectionColor% vAccountNameText, % currentDictionary.Txt_AccountName
+   Gui, Add, Edit, vAccountName w90 x130 y315 h20 -E0x200 Background2A2A2A cWhite Center, %AccountName%
 
    if (deleteMethod = "Create Bots (13P)") {
       GuiControl, Hide, SortByText
@@ -360,22 +364,24 @@ NextStep:
    Gui, Add, Picture, gShowToolsAndSystemSettings x555 y322 w32 h32, %A_ScriptDir%\GUI\Images\tools-icon.png
 
    sectionColor := "cWhite"
-   Gui, Add, GroupBox, x611 y0 w175 h360 %sectionColor%
+   Gui, Add, GroupBox, x611 y0 w175 h410 %sectionColor%
 
    Gui, Font, s12 cWhite Bold
    Gui, Add, Text, x621 y20 w155 h50 Left BackgroundTrans cWhite, % currentDictionary.title_main
    Gui, Font, s10 cWhite Bold
-   Gui, Add, Text, x621 y20 w155 h50 Left BackgroundTrans cWhite, % "`nv9.4.2 kevinnnn"
+   Gui, Add, Text, x621 y20 w155 h50 Left BackgroundTrans cWhite, % "`nv9.3.6 kevinnnn"
 
    Gui, Add, Picture, gBuyMeCoffee x625 y60, %A_ScriptDir%\GUI\Images\support_me_on_kofi.png
 
    Gui, Font, s10 cWhite Bold
-   Gui, Add, Button, x621 y205 w155 h25 gBalanceXMLs BackgroundTrans, % currentDictionary.btn_balance
-   Gui, Add, Button, x621 y240 w155 h40 gLaunchAllMumu BackgroundTrans, % currentDictionary.btn_mumu
-   Gui, Add, Button, gSave x621 y290 w155 h40, Start Bot
+   Gui, Add, Button, x621 y205 w155 h25 gCheckForUpdates BackgroundTrans, Check for Updates
+   Gui, Add, Checkbox, % (checkForUpdates ? "Checked" : "") " vcheckForUpdates x621 y235 " . sectionColor, Auto-check updates
+   Gui, Add, Button, x621 y265 w155 h25 gBalanceXMLs BackgroundTrans, % currentDictionary.btn_balance
+   Gui, Add, Button, x621 y300 w155 h40 gLaunchAllMumu BackgroundTrans, % currentDictionary.btn_mumu
+   Gui, Add, Button, gSave x621 y350 w155 h40, Start Bot
 
    Gui, Font, s7 cGray
-   Gui, Add, Text, x620 y340 w165 Center BackgroundTrans, CC BY-NC 4.0 international license
+   Gui, Add, Text, x620 y395 w165 Center BackgroundTrans, CC BY-NC 4.0 international license
 
    Gui, Show, w%GUI_WIDTH% h%GUI_HEIGHT%, Arturo's PTCGP BOT
 
@@ -1900,6 +1906,7 @@ LoadSettingsFromIni() {
       IniRead, waitTime, Settings.ini, UserSettings, waitTime, 5
       IniRead, swipeSpeed, Settings.ini, UserSettings, swipeSpeed, 500
       IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 1 ; default is now OFF for no-mod-menu support
+      IniRead, checkForUpdates, Settings.ini, UserSettings, checkForUpdates, 1
       
       IniRead, SelectedMonitorIndex, Settings.ini, UserSettings, SelectedMonitorIndex, 1
       IniRead, defaultLanguage, Settings.ini, UserSettings, defaultLanguage, Scale125
@@ -1909,6 +1916,7 @@ LoadSettingsFromIni() {
       IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, en
       IniRead, clientLanguage, Settings.ini, UserSettings, clientLanguage, en
       IniRead, instanceLaunchDelay, Settings.ini, UserSettings, instanceLaunchDelay, 2
+      IniRead, mumuRestartRuns, Settings.ini, UserSettings, mumuRestartRuns, 10
       
       IniRead, tesseractPath, Settings.ini, UserSettings, tesseractPath, C:\Program Files\Tesseract-OCR\tesseract.exe
       IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
@@ -2140,7 +2148,7 @@ SaveAllSettings() {
    global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
    global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, Eevee, HoOh, Lugia, Springs, Deluxe
    global MegaGyarados, MegaBlaziken, MegaAltaria, CrimsonBlaze, Parade
-   global slowMotion, ocrLanguage, clientLanguage
+   global slowMotion, ocrLanguage, clientLanguage, mumuRestartRuns, checkForUpdates
    global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, isDarkTheme
    global useBackgroundImage, tesseractPath, debugMode, useTesseract, statusMessage
    global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
@@ -2185,6 +2193,7 @@ SaveAllSettings() {
    iniContent .= "runMain=" runMain "`n"
    iniContent .= "autoUseGPTest=" autoUseGPTest "`n"
    iniContent .= "slowMotion=" slowMotion "`n"
+   iniContent .= "checkForUpdates=" checkForUpdates "`n"
    iniContent .= "autoLaunchMonitor=" autoLaunchMonitor "`n"
    iniContent .= "applyRoleFilters=" applyRoleFilters "`n"
    iniContent .= "debugMode=" debugMode "`n"
@@ -2312,6 +2321,7 @@ SaveAllSettings() {
    iniContent_Second .= "clientLanguage=" clientLanguage "`n"
    iniContent_Second .= "vipIdsURL=" vipIdsURL "`n"
    iniContent_Second .= "instanceLaunchDelay=" instanceLaunchDelay "`n"
+   iniContent_Second .= "mumuRestartRuns=" mumuRestartRuns "`n"
    iniContent_Second .= "injectSortMethod=" injectSortMethod "`n"
    iniContent_Second .= "waitForEligibleAccounts=" waitForEligibleAccounts "`n"
    iniContent_Second .= "maxWaitHours=" maxWaitHours "`n"

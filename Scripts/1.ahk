@@ -14,6 +14,7 @@
 #Include %A_ScriptDir%\Include\WonderPickManager.ahk
 #Include %A_ScriptDir%\Include\AccountManager.ahk
 #Include %A_ScriptDir%\Include\FriendManager.ahk
+#Include %A_ScriptDir%\Include\LaunchAllMumu.ahk
 
 #SingleInstance on
 SetMouseDelay, -1
@@ -78,10 +79,6 @@ dbg_bbox_click :=0
 
 scriptName := StrReplace(A_ScriptName, ".ahk")
 winTitle := scriptName
-
-; Reset injection cycle count on script start
-IniWrite, 0, %A_ScriptDir%\%winTitle%.ini, Metrics, InjectionCycleCount
-
 foundGP := false
 injectMethod := false
 pauseToggle := false
@@ -97,6 +94,7 @@ MuMuv5 := isMuMuv5()
 IniRead, Columns, %A_ScriptDir%\..\Settings.ini, UserSettings, Columns, 5
 IniRead, godPack, %A_ScriptDir%\..\Settings.ini, UserSettings, godPack, Continue
 IniRead, Instances, %A_ScriptDir%\..\Settings.ini, UserSettings, Instances, 1
+IniRead, mumuRestartRuns, %A_ScriptDir%\..\Settings.ini, UserSettings, mumuRestartRuns, 10
 IniRead, defaultLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, defaultLanguage, Scale125
 IniRead, rowGap, %A_ScriptDir%\..\Settings.ini, UserSettings, rowGap, 100
 IniRead, SelectedMonitorIndex, %A_ScriptDir%\..\Settings.ini, UserSettings, SelectedMonitorIndex, 1
@@ -879,6 +877,39 @@ if(DeadCheck = 1 && deleteMethod != "Create Bots (13P)") {
                 restartGameInstance("New Run", false)
             }
         }
+
+        ; Check if we need to restart MuMuPlayer (every X runs, configurable in GUI)
+        ; Use rerolls (global counter) instead of rerolls_local to persist across reloads
+        if (Mod(rerolls, mumuRestartRuns) = 0 && rerolls > 0) {
+            CreateStatusMessage("Run " . rerolls . " completed. Restarting MuMuPlayer...",,,, false)
+            LogToFile("Restarting MuMuPlayer after " . rerolls . " runs (interval: " . mumuRestartRuns . ")")
+
+            ; Save account state before restart
+            if (injectMethod && loadedAccount && !keepAccount) {
+                MarkAccountAsUsed()
+                loadedAccount := false
+            } else if (!injectMethod && (!nukeAccount || keepAccount)) {
+                ; Save account for Create Bots
+                saveAccount("All")
+            }
+
+            ; Kill and restart MuMuPlayer
+            killInstance(scriptName)
+            Sleep, 5000  ; Wait for shutdown
+
+            launchInstance(scriptName)
+            Sleep, 15000  ; Wait for MuMu to start (longer initial wait)
+
+            ; Reconnect ADB
+            ConnectAdb(folderPath)
+            Sleep, 5000
+
+            ; Reset windows positioning
+            resetWindows()
+
+            ; Reload the script to start fresh
+            Reload
+        }
     }
 }
 
@@ -1085,23 +1116,6 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
 
     }
 
-    if (imageName = "Points" || imageName = "Social" || imageName = "Country") {
-        Path = %imagePath%HardwareReq2.png
-        pNeedle := GetNeedle(Path)
-        vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 129, 446, 155, 466, searchVariation)
-        if (vRet = 1) {
-            CreateStatusMessage("Clearing hardware requirements pop-up",,,, false)
-            Sleep, 3000
-            adbClick_wbb(199,370)
-            adbClick_wbb(199,370)
-            adbClick_wbb(199,370)
-            Sleep, 2000
-            Gdip_DisposeImage(pBitmap)
-            return confirmed
-        }
-
-    }
-
     ; Handle 7/2025 trade news update popup, remove later patch
     if(imageName = "Points" || imageName = "Social" || imageName = "Shop" || imageName = "Missions" || imageName = "WonderPick" || imageName = "Home" || imageName = "Country" || imageName = "Account2" || imageName = "Account" || imageName = "ClaimAll" || imageName = "inHamburgerMenu" || imageName = "Trade") {
         Path = %imagePath%Privacy.png ; this is just the "X" button on several pop-up menus
@@ -1224,7 +1238,7 @@ FindOrLoseImage(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT", E
     Path = %imagePath%App.png
     pNeedle := GetNeedle(Path)
     ; ImageSearch within the region
-    vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 45, 174, 55, 185, searchVariation)
+    vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 48, 174, 54, 183, searchVariation)
     if (vRet = 1) {
         restartGameInstance("Stuck at " . imageName . "...")
     }
@@ -1477,24 +1491,6 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
 
         }
 
-        if (imageName = "Points" || imageName = "Social" || imageName = "Country") {
-            Path = %imagePath%HardwareReq2.png
-            pNeedle := GetNeedle(Path)
-            vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 129, 446, 155, 466, searchVariation)
-            if (vRet = 1) {
-                CreateStatusMessage("Clearing hardware requirements pop-up",,,, false)
-                Sleep, 3000
-                adbClick_wbb(199,370)
-                adbClick_wbb(199,370)
-                adbClick_wbb(199,370)
-                Sleep, 2000
-                Gdip_DisposeImage(pBitmap)
-                return confirmed
-            }
-
-        }
-
-
         ; Search for 7/2025 trade news update popup; can be removed later patch
         if(imageName = "Points" || imageName = "Social" || imageName = "Shop" || imageName = "Missions" || imageName = "WonderPick" || imageName = "Home" || imageName = "Country" || imageName = "Account2" || imageName = "Account" || imageName = "ClaimAll" || imageName = "inHamburgerMenu" || imageName = "Trade") {
             Path = %imagePath%Privacy.png
@@ -1549,7 +1545,7 @@ FindImageAndClick(X1, Y1, X2, Y2, searchVariation := "", imageName := "DEFAULT",
         Path = %imagePath%App.png
         pNeedle := GetNeedle(Path)
         ; ImageSearch within the region
-        vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 45, 174, 55, 185, searchVariation)
+        vRet := Gdip_ImageSearch_wbb(pBitmap, pNeedle, vPosXY, 48, 174, 54, 183, searchVariation)
         if (vRet = 1) {
             restartGameInstance("Stuck at " . imageName . "...")
         }
@@ -1706,7 +1702,7 @@ DirectlyPositionWindow() {
     y := MonitorTop + (currentRow * rowHeight) + (currentRow * rowGap)
     ;x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
     if (MuMuv5) {
-        x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * (scaleParam - borderWidth * 2)) ; - borderWidth
+        x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * (scaleParam - borderWidth * 2)) - borderWidth
     } else {
         x := MonitorLeft + (Mod((instanceIndex - 1), Columns) * scaleParam)
     }
@@ -1723,7 +1719,74 @@ DirectlyPositionWindow() {
 
 restartGameInstance(reason, RL := true) {
     global friended, scriptName, packsThisRun, injectMethod, loadedAccount, DeadCheck, starCount, packsInPool, openPack, invalid, accountFile, username, stopToggle, accountFileName
-    global isCurrentlyDoingWPCheck
+    global isCurrentlyDoingWPCheck, folderPath, keepAccount, nukeAccount
+
+    ; Read stuck counter from INI (persists across reloads)
+    IniRead, consecutiveStuckCount, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount, 0
+    IniRead, lastStuckTime, %A_ScriptDir%\%scriptName%.ini, StuckDetection, LastStuckTime, 0
+
+    ; Check if this is a "Stuck" reason
+    if (InStr(reason, "Stuck")) {
+        ; Check if last stuck was more than 10 minutes ago (reset counter if so)
+        currentTime := A_Now
+        timeDiffMinutes := 0
+        if (lastStuckTime != 0) {
+            timeDiff := currentTime
+            EnvSub, timeDiff, %lastStuckTime%, Minutes
+            timeDiffMinutes := timeDiff
+        }
+
+        if (timeDiffMinutes > 10) {
+            ; Reset counter if last stuck was >10 minutes ago
+            consecutiveStuckCount := 0
+        }
+
+        consecutiveStuckCount++
+        lastStuckTime := currentTime
+
+        ; Save to INI immediately
+        IniWrite, %consecutiveStuckCount%, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount
+        IniWrite, %lastStuckTime%, %A_ScriptDir%\%scriptName%.ini, StuckDetection, LastStuckTime
+
+        LogToFile("Stuck detected (count: " . consecutiveStuckCount . ") for instance " . scriptName . ". Reason: " . reason)
+
+        ; If we've been stuck twice in a row (within 10 minutes), restart MuMuPlayer instead
+        if (consecutiveStuckCount >= 2) {
+            ; Reset counter in INI
+            IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount
+            CreateStatusMessage("Stuck twice! Restarting MuMuPlayer...",,,, false)
+            LogToFile("Restarting MuMuPlayer after 2 consecutive stuck events for instance " . scriptName)
+
+            ; Save account state before restart
+            if (injectMethod && loadedAccount && !keepAccount) {
+                MarkAccountAsUsed()
+                loadedAccount := false
+            } else if (!injectMethod && (!nukeAccount || keepAccount)) {
+                ; Save account for Create Bots
+                saveAccount("All")
+            }
+
+            ; Kill and restart MuMuPlayer
+            killInstance(scriptName)
+            Sleep, 5000  ; Wait for shutdown
+
+            launchInstance(scriptName)
+            Sleep, 15000  ; Wait for MuMu to start
+
+            ; Reconnect ADB
+            ConnectAdb(folderPath)
+            Sleep, 5000
+
+            ; Reset windows positioning
+            resetWindows()
+
+            ; Reload the script to start fresh
+            Reload
+        }
+    } else {
+        ; Not a stuck event, reset counter in INI
+        IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount
+    }
 
     ; Check if we're currently doing a WP thanks check (use the proper flag)
     if (isCurrentlyDoingWPCheck) {
@@ -1743,34 +1806,17 @@ restartGameInstance(reason, RL := true) {
             loadedAccount := false
         }
 
-        ; Restart without deadcheck (CLEAN way)
+        ; Restart without deadcheck
         waitadb()
-
-        adbWriteRaw("input keyevent 3")
-        waitadb()
-
-        adbWriteRaw("am stop-app jp.pokemon.pokemontcgp")
-        Sleep, 500
-        adbWriteRaw("cmd activity stop-app jp.pokemon.pokemontcgp")
-        Sleep, 500
-
-        adbWriteRaw("am kill jp.pokemon.pokemontcgp")
-        Sleep, 500
         adbWriteRaw("am force-stop jp.pokemon.pokemontcgp")
-        Sleep, 500
-
-        adbWriteRaw("sync")
-        Sleep, 3000
-
-        clearMissionCache()
-
         waitadb()
-
-        adbWriteRaw("monkey -p jp.pokemon.pokemontcgp -c android.intent.category.LAUNCHER 1")
+        Sleep, 2000
+        clearMissionCache()
+        adbWriteRaw("am start -W -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity -f 0x10018000")
         waitadb()
         Sleep, 5000
 
-        return ; Exit early to continue with next account
+        return  ; Exit early to continue with next account
     }
 
     ; Original restartGameInstance logic for non-WP checks
@@ -1780,10 +1826,6 @@ restartGameInstance(reason, RL := true) {
         CreateStatusMessage("Stuck! Restarting game...",,,, false)
     else
         CreateStatusMessage("Restarting game...",,,, false)
-
-    ; Always log stuck reasons for debugging
-    if (InStr(reason, "Stuck"))
-        LogToFile("STUCK DETECTED in " . scriptName . " - Reason: " . reason . " | loadedAccount: " . (loadedAccount ? "true" : "false") . " | injectMethod: " . (injectMethod ? "true" : "false") . " | accountFileName: " . accountFileName, "StuckLog.txt")
 
     if (RL = "GodPack") {
         LogToFile("Restarted game for instance " . scriptName . ". Reason: " reason, "Restart.txt")
@@ -1797,37 +1839,19 @@ restartGameInstance(reason, RL := true) {
 
         Reload
     } else {
-        waitadb() ; Properly detach Unity from foreground 
-        adbWriteRaw("input keyevent 3") ; HOME 
-        Sleep, 500 
-        
-        ; Tell ActivityTaskManager to destroy the task + surface 
-        adbWriteRaw("am stop-app jp.pokemon.pokemontcgp") 
-        Sleep, 500 
-        adbWriteRaw("cmd activity stop-app jp.pokemon.pokemontcgp") 
-        Sleep, 500 
-        
-        ; Kill remaining native parts 
-        adbWriteRaw("am kill jp.pokemon.pokemontcgp") 
-        Sleep, 500 
-        adbWriteRaw("am force-stop jp.pokemon.pokemontcgp") 
-        Sleep, 500 
-        
-        ; Force MuMu/Android to flush surface & binder state 
-        adbWriteRaw("sync") 
-        Sleep, 3000 
-        
-        clearMissionCache() 
-        if (!RL && DeadCheck = 0) { 
-            adbWriteRaw("rm /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml") ; delete account data 
-        } 
-        
-        waitadb() 
-        
-        ; Launch like a real user tap (NEW task, NEW surface) 
-        adbWriteRaw("monkey -p jp.pokemon.pokemontcgp -c android.intent.category.LAUNCHER 1") 
-        waitadb() 
-        Sleep, 6000
+        waitadb()
+        adbWriteRaw("am force-stop jp.pokemon.pokemontcgp")
+        waitadb()
+        Sleep, 2000
+        clearMissionCache()
+        if (!RL && DeadCheck = 0) {
+            adbWriteRaw("rm /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml") ; delete account data
+        }
+        waitadb()
+        Sleep, 500
+        adbWriteRaw("am start -W -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity -f 0x10018000")
+        waitadb()
+        Sleep, 5000
 
         if (RL) {
             AppendToJsonFile(packsThisRun)
@@ -2261,11 +2285,10 @@ Screenshot_dev(fileType := "Dev",subDir := "") {
     try {
         OwnerWND := WinExist(winTitle)
         buttonWidth := 40
-        guiHeight := 489 + titleHeight  ; 489 game area + title bar (45 for v4, 50 for v5)
 
         Gui, DevMode_ss%winTitle%:New, +LastFound -DPIScale
-        Gui, DevMode_ss%winTitle%:Add, Picture, x0 y0 w275 h%guiHeight%, %filePath%
-        Gui, DevMode_ss%winTitle%:Show, w275 h%guiHeight%, Screensho %winTitle%
+        Gui, DevMode_ss%winTitle%:Add, Picture, x0 y0 w275 h534, %filePath%
+        Gui, DevMode_ss%winTitle%:Show, w275 h534, Screensho %winTitle%
 
         sleep 100
         msgbox click on top-left corner and bottom-right corners
@@ -2301,9 +2324,9 @@ Screenshot_dev(fileType := "Dev",subDir := "") {
         Y3 -= 31
 
         ; Convert window coordinates to device/OCR coordinates
-        ; Device resolution: 540x960, Window resolution: 277 x 489, Y offset: titleHeight - 1
+        ; Device resolution: 540x960, Window resolution: 277 x 489, Y offset: 49
         OCR_X1 := Round(X1 * 540 / 277)
-        OCR_Y1 := Round((Y1 - (titleHeight - 1)) * 960 / 489)
+        OCR_Y1 := Round((Y1 - 49) * 960 / 489)
         OCR_W := Round(W * 540 / 277)
         OCR_H := Round(H * 960 / 489)
         OCR_X2 := OCR_X1 + OCR_W
