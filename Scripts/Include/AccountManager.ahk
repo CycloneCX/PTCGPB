@@ -561,136 +561,14 @@ ClearDeviceAccountXmlMap() {
     deviceAccountXmlMap := {}
 }
 
-;-------------------------------------------------------------------------------
-; killInstance - Kill MuMu instance by instance number
-;-------------------------------------------------------------------------------
-killInstance(instanceNum := "") {
-    killed := 0
-
-    pID := checkInstance(instanceNum)
-    if pID {
-        Process, Close, %pID%
-        killed := killed + 1
-    }
-
-    return killed
-}
-
-;-------------------------------------------------------------------------------
-; checkInstance - Check if MuMu instance exists and get its process ID
-;-------------------------------------------------------------------------------
-checkInstance(instanceNum := "") {
-    ret := WinExist(instanceNum)
-    if(ret) {
-        WinGet, temp_pid, PID, ahk_id %ret%
-        return temp_pid
-    }
-
-    return ""
-}
-
-;-------------------------------------------------------------------------------
-; launchInstance - Launch MuMu instance by instance number
-;-------------------------------------------------------------------------------
-launchInstance(instanceNum := "") {
-    global folderPath
-
-    ; Determine MuMu folder path
-    mumuFolder := folderPath . "\MuMuPlayerGlobal-12.0"
-    if !FileExist(mumuFolder)
-        mumuFolder := folderPath . "\MuMu Player 12"
-    if !FileExist(mumuFolder)
-        mumuFolder := folderPath . "\MuMuPlayer"
-
-    if(instanceNum != "") {
-        mumuNum := getMumuInstanceNumFromPlayerName(instanceNum)
-        if(mumuNum != "") {
-            mumuExe := mumuFolder . "\shell\MuMuPlayer.exe"
-            if !FileExist(mumuExe)
-                mumuExe := mumuFolder . "\nx_main\MuMuNxMain.exe"
-            Run_(mumuExe, "-v " . mumuNum)
-        }
-    }
-}
-
-;-------------------------------------------------------------------------------
-; getMumuInstanceNumFromPlayerName - Get MuMu instance number from player name
-;-------------------------------------------------------------------------------
-getMumuInstanceNumFromPlayerName(scriptName := "") {
-    global folderPath
-
-    if(scriptName == "") {
-        return ""
-    }
-
-    ; Determine MuMu folder path
-    mumuFolder := folderPath . "\MuMuPlayerGlobal-12.0"
-    if !FileExist(mumuFolder)
-        mumuFolder := folderPath . "\MuMu Player 12"
-    if !FileExist(mumuFolder)
-        mumuFolder := folderPath . "\MuMuPlayer"
-
-    ; Loop through all directories in the base folder
-    Loop, Files, %mumuFolder%\vms\*, D
-    {
-        folder := A_LoopFileFullPath
-        configFolder := folder "\configs"
-
-        IfExist, %configFolder%
-        {
-            extraConfigFile := configFolder "\extra_config.json"
-
-            IfExist, %extraConfigFile%
-            {
-                FileRead, extraConfigContent, %extraConfigFile%
-                RegExMatch(extraConfigContent, """playerName"":\s*""(.*?)""", playerName)
-                if(playerName1 == scriptName) {
-                    RegExMatch(A_LoopFileFullPath, "[^-]+$", mumuNum)
-                    return mumuNum
-                }
-            }
-        }
-    }
-}
-
-;-------------------------------------------------------------------------------
-; Run_ - Run as non-administrator (MuMu has issues running as admin)
-;-------------------------------------------------------------------------------
-Run_(target, args:="", workdir:="") {
-    try
-        ShellRun(target, args, workdir)
-    catch e
-        Run % args="" ? target : target " " args, % workdir
-}
-
-;-------------------------------------------------------------------------------
-; ShellRun - Helper function for Run_ to execute as non-admin
-;-------------------------------------------------------------------------------
-ShellRun(prms*) {
-    shellWindows := ComObjCreate("Shell.Application").Windows
-    VarSetCapacity(_hwnd, 4, 0)
-    desktop := shellWindows.FindWindowSW(0, "", 8, ComObj(0x4003, &_hwnd), 1)
-
-    if ptlb := ComObjQuery(desktop
-        , "{4C96BE40-915C-11CF-99D3-00AA004AE837}"
-        , "{000214E2-0000-0000-C000-000000000046}")
-    {
-        if DllCall(NumGet(NumGet(ptlb+0)+15*A_PtrSize), "ptr", ptlb, "ptr*", psv:=0) = 0
-        {
-            VarSetCapacity(IID_IDispatch, 16)
-            NumPut(0x46000000000000C0, NumPut(0x20400, IID_IDispatch, "int64"), "int64")
-
-            DllCall(NumGet(NumGet(psv+0)+15*A_PtrSize), "ptr", psv
-                , "uint", 0, "ptr", &IID_IDispatch, "ptr*", pdisp:=0)
-
-            shell := ComObj(9,pdisp,1).Application
-            shell.ShellExecute(prms*)
-
-            ObjRelease(psv)
-        }
-        ObjRelease(ptlb)
-    }
-}
+; Note: killInstance() and checkInstance() are now defined in LaunchAllMumu.ahk
+; The following functions are now defined in LaunchAllMumu.ahk to avoid duplicates:
+; - killInstance()
+; - checkInstance()
+; - launchInstance()
+; - getMumuInstanceNumFromPlayerName()
+; - Run_()
+; - ShellRun()
 
 ;-------------------------------------------------------------------------------
 ; UpdateSavedXml - Update saved XML file with current game state
