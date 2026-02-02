@@ -2,6 +2,23 @@
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 
+; Initialize mumuFolder for use when included as library
+InitMumuFolder() {
+    global mumuFolder
+    IniRead, folderPath, %A_ScriptDir%\..\..\Settings.ini, UserSettings, folderPath, C:\Program Files\Netease
+
+    mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
+    if !FileExist(mumuFolder)
+        mumuFolder = %folderPath%\MuMu Player 12
+    if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
+        mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
+    if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
+        mumuFolder = %folderPath%\MuMu Player 12
+    if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
+        mumuFolder = %folderPath%\MuMuPlayer
+    return mumuFolder
+}
+
 ; Only run main code if this script is executed directly (not included)
 if (A_ScriptName = "LaunchAllMumu.ahk")
 {
@@ -17,6 +34,12 @@ if (A_ScriptName = "LaunchAllMumu.ahk")
     mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
     if !FileExist(mumuFolder)
         mumuFolder = %folderPath%\MuMu Player 12
+    if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
+        mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
+    if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
+        mumuFolder = %folderPath%\MuMu Player 12
+    if !FileExist(mumuFolder) ;MuMu Player 12 v5 supported
+        mumuFolder = %folderPath%\MuMuPlayer
     if !FileExist(mumuFolder){
         MsgBox, 16, , Double check your folder path! It should be the one that contains the MuMuPlayer 12 folder! `nDefault is just C:\Program Files\Netease
         ExitApp
@@ -25,24 +48,11 @@ if (A_ScriptName = "LaunchAllMumu.ahk")
     ; Loop through each instance, check if it's started, and start it if it's not
     launched := 0
 
-    ; Allows launching Main2, Main3, etc.
-    if(runMain && Mains > 0)
-    {
-        Loop %Mains% {
-            instanceNum := "Main" . (A_Index > 1 ? A_Index : "")
-            pID := checkInstance(instanceNum)
-            if not pID {
-                launchInstance(instanceNum)
-
-                sleepTime := instanceLaunchDelay * 1000
-                Sleep, % sleepTime
-                launched := launched + 1
-            }
-        }
-    }
-
-    Loop %Instances% {
-        instanceNum := Format("{:u}", A_Index)
+; Allows launching Main2, Main3, etc.
+if(runMain && Mains > 0)
+{
+    Loop %Mains% {
+        instanceNum := "Main" . (A_Index > 1 ? A_Index : "")
         pID := checkInstance(instanceNum)
         if not pID {
             launchInstance(instanceNum)
@@ -52,24 +62,26 @@ if (A_ScriptName = "LaunchAllMumu.ahk")
             launched := launched + 1
         }
     }
-
-    ExitApp
 }
 
+Loop %Instances% {
+    instanceNum := Format("{:u}", A_Index)
+    pID := checkInstance(instanceNum)
+    if not pID {
+        launchInstance(instanceNum)
 
-
-
-
-; Initialize mumuFolder for use when included as library
-InitMumuFolder() {
-    global mumuFolder
-    IniRead, folderPath, %A_ScriptDir%\..\..\Settings.ini, UserSettings, folderPath, C:\Program Files\Netease
-
-    mumuFolder = %folderPath%\MuMuPlayerGlobal-12.0
-    if !FileExist(mumuFolder)
-        mumuFolder = %folderPath%\MuMu Player 12
-    return mumuFolder
+        sleepTime := instanceLaunchDelay * 1000
+        Sleep, % sleepTime
+        launched := launched + 1
+    }
 }
+
+ExitApp
+} ; End of if (A_ScriptName = "LaunchAllMumu.ahk")
+
+
+
+
 
 killInstance(instanceNum := "")
 {

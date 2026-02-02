@@ -132,59 +132,6 @@ loadAccount() {
     adbWriteRaw("sync")
     Sleep, 3000
 
-    ; Injection cycle restart logic for "Inject 13P+" to temporarily mitigate MuMu memory leak / PTCGP incompatibility issues.
-    if (deleteMethod = "Inject 13P+") {
-        IniRead, InjectionCycleCount, %A_ScriptDir%\%winTitle%.ini, Metrics, InjectionCycleCount, 0
-        InjectionCycleCount := InjectionCycleCount + 1
-        IniWrite, %InjectionCycleCount%, %A_ScriptDir%\%winTitle%.ini, Metrics, InjectionCycleCount
-
-        if (InjectionCycleCount >= 13) {
-            InjectionCycleCount := 0
-            IniWrite, %InjectionCycleCount%, %A_ScriptDir%\%winTitle%.ini, Metrics, InjectionCycleCount
-
-            CreateStatusMessage("Restarting MuMu instance (13th cycle)",,,, false)
-            LogToFile("Restarting MuMu instance after 13 injection cycles")
-
-            ; Kill the MuMu instance
-            killedInstance := killInstance(winTitle)
-            Sleep, 3000
-
-            ; Launch new instance
-            launchInstance(winTitle)
-            Sleep, 15000
-
-            ; Wait for window to exist
-            WinWait, %winTitle%, , 30
-            if ErrorLevel {
-                LogToFile("Warning: MuMu instance window did not appear within 30 seconds")
-                CreateStatusMessage("MuMu restart timeout - continuing...",,,, false)
-            } else {
-                CreateStatusMessage("MuMu window detected, reconnecting ADB...",,,, false)
-                LogToFile("MuMu window detected, reconnecting ADB")
-            }
-
-            ; Reset the ADB shell connection (it's now pointing to dead instance)
-            adbShell := ""
-            Sleep, 5000  ; Wait for ADB daemon to start on new instance
-
-            ; Disconnect this instance's ADB connection only (do NOT kill-server as that affects ALL instances)
-            CreateStatusMessage("Disconnecting ADB for instance " . winTitle . "...",,,, false)
-            RunWait, % adbPath . " disconnect 127.0.0.1:" . adbPort,, Hide
-            Sleep, 2000
-
-            ; Reconnect to this specific instance only
-            CreateStatusMessage("Reconnecting to MuMu instance...",,,, false)
-            LogToFile("Reconnecting to ADB on port " . adbPort)
-            ConnectAdb(folderPath)
-
-            ; Initialize new ADB shell connection
-            CreateStatusMessage("Initializing ADB shell...",,,, false)
-            initializeAdbShell()
-            CreateStatusMessage("ADB reconnected successfully",,,, false)
-            LogToFile("ADB shell reinitialized successfully")
-        }
-    }
-
     waitadb()
     RunWait, % adbPath . " -s 127.0.0.1:" . adbPort . " push " . loadFile . " /sdcard/deviceAccount.xml",, Hide
     waitadb()

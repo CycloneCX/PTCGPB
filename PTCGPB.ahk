@@ -106,7 +106,7 @@ OnError("ErrorHandler")
 
 githubUser := "kevnITG"
    ,repoName := "PTCGPB"
-   ,localVersion := "v9.3.6"
+   ,localVersion := "v9.4.2"
    ,scriptFolder := A_ScriptDir
    ,zipPath := A_Temp . "\update.zip"
    ,extractPath := A_Temp . "\update"
@@ -246,14 +246,14 @@ NextStep:
    defaultDelete := 2
    else if (deleteMethod = "Inject Wonderpick 96P+")
    defaultDelete := 3
-   Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x20 y235 w200 Background2A2A2A cWhite, Create Bots (13P)|Inject 13P+|Inject Wonderpick 96P+
+   Gui, Add, DropDownList, vdeleteMethod gdeleteSettings choose%defaultDelete% x20 y210 w200 Background2A2A2A cWhite, Create Bots (13P)|Inject 13P+|Inject Wonderpick 96P+
 
-   Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x20 y265 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+") ? "" : " Hidden"), % currentDictionary.Txt_packMethod
-   ; Gui, Add, Checkbox, % (nukeAccount ? "Checked" : "") " vnukeAccount x20 y265 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? "": " Hidden"), % currentDictionary.Txt_nukeAccount
-   Gui, Add, Checkbox, % (openExtraPack ? "Checked" : "") " vopenExtraPack gopenExtraPackSettings x20 y265 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+" || deleteMethod = "Inject 13P+") ? "" : " Hidden"), % currentDictionary.Txt_openExtraPack
-   Gui, Add, Checkbox, % (spendHourGlass ? "Checked" : "") " vspendHourGlass gspendHourGlassSettings x20 y290 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? " Hidden":""), % currentDictionary.Txt_spendHourGlass
+   Gui, Add, Checkbox, % (packMethod ? "Checked" : "") " vpackMethod x20 y240 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+") ? "" : " Hidden"), % currentDictionary.Txt_packMethod
+   ; Gui, Add, Checkbox, % (nukeAccount ? "Checked" : "") " vnukeAccount x20 y240 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? "": " Hidden"), % currentDictionary.Txt_nukeAccount
+   Gui, Add, Checkbox, % (openExtraPack ? "Checked" : "") " vopenExtraPack gopenExtraPackSettings x20 y260 " . sectionColor . ((deleteMethod = "Inject Wonderpick 96P+" || deleteMethod = "Inject 13P+") ? "" : " Hidden"), % currentDictionary.Txt_openExtraPack
+   Gui, Add, Checkbox, % (spendHourGlass ? "Checked" : "") " vspendHourGlass gspendHourGlassSettings x20 y280 " . sectionColor . ((deleteMethod = "Create Bots (13P)")? " Hidden":""), % currentDictionary.Txt_spendHourGlass
 
-   Gui, Add, Text, x20 y315 %sectionColor% vSortByText, % currentDictionary.SortByText
+   Gui, Add, Text, x20 y305 %sectionColor% vSortByText, % currentDictionary.SortByText
    sortOption := 1
    if (injectSortMethod = "ModifiedDesc")
    sortOption := 2
@@ -261,10 +261,10 @@ NextStep:
    sortOption := 3
    else if (injectSortMethod = "PacksDesc")
    sortOption := 4
-   Gui, Add, DropDownList, vSortByDropdown gSortByDropdownHandler choose%sortOption% x20 y335 w130 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
+   Gui, Add, DropDownList, vSortByDropdown gSortByDropdownHandler choose%sortOption% x20 y325 w130 Background2A2A2A cWhite, Oldest First|Newest First|Fewest Packs First|Most Packs First
 
-   Gui, Add, Text, x20 y315 %sectionColor% vAccountNameText, % currentDictionary.Txt_AccountName
-   Gui, Add, Edit, vAccountName w90 x130 y315 h20 -E0x200 Background2A2A2A cWhite Center, %AccountName%
+   Gui, Add, Text, x20 y260 %sectionColor% vAccountNameText, % currentDictionary.Txt_AccountName
+   Gui, Add, Edit, vAccountName w90 x130 y260 h20 -E0x200 Background2A2A2A cWhite Center, %AccountName%
 
    if (deleteMethod = "Create Bots (13P)") {
       GuiControl, Hide, SortByText
@@ -369,7 +369,7 @@ NextStep:
    Gui, Font, s12 cWhite Bold
    Gui, Add, Text, x621 y20 w155 h50 Left BackgroundTrans cWhite, % currentDictionary.title_main
    Gui, Font, s10 cWhite Bold
-   Gui, Add, Text, x621 y20 w155 h50 Left BackgroundTrans cWhite, % "`nv9.3.6 kevinnnn"
+   Gui, Add, Text, x621 y20 w155 h50 Left BackgroundTrans cWhite, % "`nv9.4.2 kevinnnn"
 
    Gui, Add, Picture, gBuyMeCoffee x625 y60, %A_ScriptDir%\GUI\Images\support_me_on_kofi.png
 
@@ -1907,6 +1907,7 @@ LoadSettingsFromIni() {
       IniRead, swipeSpeed, Settings.ini, UserSettings, swipeSpeed, 500
       IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 1 ; default is now OFF for no-mod-menu support
       IniRead, checkForUpdates, Settings.ini, UserSettings, checkForUpdates, 1
+      IniRead, mumuRestartRuns, Settings.ini, UserSettings, mumuRestartRuns, 10
       
       IniRead, SelectedMonitorIndex, Settings.ini, UserSettings, SelectedMonitorIndex, 1
       IniRead, defaultLanguage, Settings.ini, UserSettings, defaultLanguage, Scale125
@@ -1916,7 +1917,6 @@ LoadSettingsFromIni() {
       IniRead, ocrLanguage, Settings.ini, UserSettings, ocrLanguage, en
       IniRead, clientLanguage, Settings.ini, UserSettings, clientLanguage, en
       IniRead, instanceLaunchDelay, Settings.ini, UserSettings, instanceLaunchDelay, 2
-      IniRead, mumuRestartRuns, Settings.ini, UserSettings, mumuRestartRuns, 10
       
       IniRead, tesseractPath, Settings.ini, UserSettings, tesseractPath, C:\Program Files\Tesseract-OCR\tesseract.exe
       IniRead, debugMode, Settings.ini, UserSettings, debugMode, 0
@@ -2194,6 +2194,7 @@ SaveAllSettings() {
    iniContent .= "autoUseGPTest=" autoUseGPTest "`n"
    iniContent .= "slowMotion=" slowMotion "`n"
    iniContent .= "checkForUpdates=" checkForUpdates "`n"
+   iniContent .= "mumuRestartRuns=" mumuRestartRuns "`n"
    iniContent .= "autoLaunchMonitor=" autoLaunchMonitor "`n"
    iniContent .= "applyRoleFilters=" applyRoleFilters "`n"
    iniContent .= "debugMode=" debugMode "`n"
@@ -2321,7 +2322,6 @@ SaveAllSettings() {
    iniContent_Second .= "clientLanguage=" clientLanguage "`n"
    iniContent_Second .= "vipIdsURL=" vipIdsURL "`n"
    iniContent_Second .= "instanceLaunchDelay=" instanceLaunchDelay "`n"
-   iniContent_Second .= "mumuRestartRuns=" mumuRestartRuns "`n"
    iniContent_Second .= "injectSortMethod=" injectSortMethod "`n"
    iniContent_Second .= "waitForEligibleAccounts=" waitForEligibleAccounts "`n"
    iniContent_Second .= "maxWaitHours=" maxWaitHours "`n"
