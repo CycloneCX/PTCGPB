@@ -899,6 +899,15 @@ if(DeadCheck = 1 && deleteMethod != "Create Bots (13P)") {
             launchInstance(scriptName)
             Sleep, 15000  ; Wait for MuMu to start (longer initial wait)
 
+            ; Wait for window to exist before repositioning
+            WinWait, %winTitle%, , 30
+            if ErrorLevel {
+                LogToFile("Warning: MuMu window did not appear within 30 seconds after restart")
+                CreateStatusMessage("MuMu restart timeout - continuing...",,,, false)
+            } else {
+                Sleep, 2000  ; Extra wait for window to fully initialize
+            }
+
             ; Reconnect ADB
             ConnectAdb(folderPath)
             Sleep, 5000
