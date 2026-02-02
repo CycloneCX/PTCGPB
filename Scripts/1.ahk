@@ -2,6 +2,7 @@
 #Include %A_ScriptDir%\Include\ADB.ahk
 #Include %A_ScriptDir%\Include\Gdip_All.ahk
 #Include %A_ScriptDir%\Include\Gdip_Imagesearch.ahk
+#Include %A_ScriptDir%\Include\LaunchAllMumu.ahk
 
 ; BallCity - 2025.20.25 - Add OCR library for Username if Inject is on
 #Include *i %A_ScriptDir%\Include\OCR.ahk
@@ -79,9 +80,6 @@ dbg_bbox_click :=0
 scriptName := StrReplace(A_ScriptName, ".ahk")
 winTitle := scriptName
 
-; Reset injection cycle count on script start
-IniWrite, 0, %A_ScriptDir%\%winTitle%.ini, Metrics, InjectionCycleCount
-
 foundGP := false
 injectMethod := false
 pauseToggle := false
@@ -97,6 +95,7 @@ MuMuv5 := isMuMuv5()
 IniRead, Columns, %A_ScriptDir%\..\Settings.ini, UserSettings, Columns, 5
 IniRead, godPack, %A_ScriptDir%\..\Settings.ini, UserSettings, godPack, Continue
 IniRead, Instances, %A_ScriptDir%\..\Settings.ini, UserSettings, Instances, 1
+IniRead, mumuRestartRuns, %A_ScriptDir%\..\Settings.ini, UserSettings, mumuRestartRuns, 10
 IniRead, defaultLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, defaultLanguage, Scale125
 IniRead, rowGap, %A_ScriptDir%\..\Settings.ini, UserSettings, rowGap, 100
 IniRead, SelectedMonitorIndex, %A_ScriptDir%\..\Settings.ini, UserSettings, SelectedMonitorIndex, 1
@@ -878,6 +877,37 @@ if(DeadCheck = 1 && deleteMethod != "Create Bots (13P)") {
                 }
                 restartGameInstance("New Run", false)
             }
+        }
+
+        ; Check if we need to restart MuMuPlayer (every X runs, configurable in GUI)
+        ; Only for "Inject 13P+" mode to mitigate memory leak issues
+        ; Use rerolls (global counter) instead of rerolls_local to persist across reloads
+        if (deleteMethod = "Inject 13P+" && Mod(rerolls, mumuRestartRuns) = 0 && rerolls > 0) {
+            CreateStatusMessage("Run " . rerolls . " completed. Restarting MuMuPlayer...",,,, false)
+            LogToFile("Restarting MuMuPlayer after " . rerolls . " runs (interval: " . mumuRestartRuns . ")")
+
+            ; Save account state before restart
+            if (injectMethod && loadedAccount && !keepAccount) {
+                MarkAccountAsUsed()
+                loadedAccount := false
+            }
+
+            ; Kill and restart MuMuPlayer
+            killInstance(scriptName)
+            Sleep, 5000  ; Wait for shutdown
+
+            launchInstance(scriptName)
+            Sleep, 15000  ; Wait for MuMu to start (longer initial wait)
+
+            ; Reconnect ADB
+            ConnectAdb(folderPath)
+            Sleep, 5000
+
+            ; Reset windows positioning
+            resetWindows()
+
+            ; Reload the script to start fresh
+            Reload
         }
     }
 }
@@ -1723,7 +1753,74 @@ DirectlyPositionWindow() {
 
 restartGameInstance(reason, RL := true) {
     global friended, scriptName, packsThisRun, injectMethod, loadedAccount, DeadCheck, starCount, packsInPool, openPack, invalid, accountFile, username, stopToggle, accountFileName
-    global isCurrentlyDoingWPCheck
+    global isCurrentlyDoingWPCheck, folderPath, keepAccount, nukeAccount
+
+    ; Read stuck counter from INI (persists across reloads)
+    IniRead, consecutiveStuckCount, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount, 0
+    IniRead, lastStuckTime, %A_ScriptDir%\%scriptName%.ini, StuckDetection, LastStuckTime, 0
+
+    ; Check if this is a "Stuck" reason
+    if (InStr(reason, "Stuck")) {
+        ; Check if last stuck was more than 10 minutes ago (reset counter if so)
+        currentTime := A_Now
+        timeDiffMinutes := 0
+        if (lastStuckTime != 0) {
+            timeDiff := currentTime
+            EnvSub, timeDiff, %lastStuckTime%, Minutes
+            timeDiffMinutes := timeDiff
+        }
+
+        if (timeDiffMinutes > 10) {
+            ; Reset counter if last stuck was >10 minutes ago
+            consecutiveStuckCount := 0
+        }
+
+        consecutiveStuckCount++
+        lastStuckTime := currentTime
+
+        ; Save to INI immediately
+        IniWrite, %consecutiveStuckCount%, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount
+        IniWrite, %lastStuckTime%, %A_ScriptDir%\%scriptName%.ini, StuckDetection, LastStuckTime
+
+        LogToFile("Stuck detected (count: " . consecutiveStuckCount . ") for instance " . scriptName . ". Reason: " . reason)
+
+        ; If we've been stuck twice in a row, restart MuMuPlayer instead
+        if (consecutiveStuckCount >= 2) {
+            consecutiveStuckCount := 0  ; Reset counter
+            IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount
+            CreateStatusMessage("Stuck twice! Restarting MuMuPlayer...",,,, false)
+            LogToFile("Restarting MuMuPlayer after 2 consecutive stuck events for instance " . scriptName)
+
+            ; Save account state before restart
+            if (injectMethod && loadedAccount && !keepAccount) {
+                MarkAccountAsUsed()
+                loadedAccount := false
+            } else if (!injectMethod && (!nukeAccount || keepAccount)) {
+                ; Save account for Create Bots
+                saveAccount("All")
+            }
+
+            ; Kill and restart MuMuPlayer
+            killInstance(scriptName)
+            Sleep, 5000  ; Wait for shutdown
+
+            launchInstance(scriptName)
+            Sleep, 15000  ; Wait for MuMu to start
+
+            ; Reconnect ADB
+            ConnectAdb(folderPath)
+            Sleep, 5000
+
+            ; Reset windows positioning
+            resetWindows()
+
+            ; Reload the script to start fresh
+            Reload
+        }
+    } else {
+        ; Not a stuck event, reset counter
+        IniWrite, 0, %A_ScriptDir%\%scriptName%.ini, StuckDetection, StuckCount
+    }
 
     ; Check if we're currently doing a WP thanks check (use the proper flag)
     if (isCurrentlyDoingWPCheck) {

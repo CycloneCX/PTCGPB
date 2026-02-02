@@ -1,4 +1,4 @@
-﻿DisplayPackStatus(Message, X := 0, Y := 625) {
+DisplayPackStatus(Message, X := 0, Y := 625) {
    global SelectedMonitorIndex
    static GuiName := "ScreenPackStatus"
    
@@ -112,8 +112,8 @@ githubUser := "kevnITG"
    ,extractPath := A_Temp . "\update"
    ,intro := "Fantastical Parade"
 
-global GUI_WIDTH := 790
-global GUI_HEIGHT := 370
+global GUI_WIDTH := 850
+global GUI_HEIGHT := 420
 global MainGuiName
 global MuMuv5
 
@@ -176,7 +176,8 @@ NextStep:
       FileDelete, %saveSignalFile%
    } else {
       KillADBProcesses()
-      CheckForUpdate()
+      if (checkForUpdates)
+         CheckForUpdate()
    }
    
    scriptName := StrReplace(A_ScriptName, ".ahk")
@@ -217,7 +218,7 @@ NextStep:
    }
 
    sectionColor := "cWhite"
-   Gui, Add, GroupBox, x5 y50 w240 h130 %sectionColor%, % currentDictionary.InstanceSettings
+   Gui, Add, GroupBox, x5 y50 w240 h155 %sectionColor%, % currentDictionary.InstanceSettings
    Gui, Add, Text, x20 y75 %sectionColor%, % currentDictionary.Txt_Instances
    Gui, Add, Edit, vInstances w50 x125 y75 h20 -E0x200 Background2A2A2A cWhite Center, %Instances%
    Gui, Add, Text, x20 y100 %sectionColor%, % currentDictionary.Txt_Columns
@@ -228,11 +229,14 @@ NextStep:
    Gui, Add, Text, x20 y125 %sectionColor%, % currentDictionary.Txt_InstanceStartDelay
    Gui, Add, Edit, vinstanceStartDelay w50 x125 y125 h20 -E0x200 Background2A2A2A cWhite Center, %instanceStartDelay%
 
-   Gui, Add, Checkbox, % (runMain ? "Checked" : "") " vrunMain gmainSettings x20 y150 " . sectionColor, % currentDictionary.Txt_runMain
-   Gui, Add, Edit, % "vMains w50 x125 y150 h20 -E0x200 Background2A2A2A " . sectionColor . " Center" . (runMain ? "" : " Hidden"), %Mains%
+   Gui, Add, Text, x20 y150 %sectionColor%, Runs til Restart
+   Gui, Add, Edit, vmumuRestartRuns w50 x125 y150 h20 -E0x200 Background2A2A2A cWhite Center, %mumuRestartRuns%
+
+   Gui, Add, Checkbox, % (runMain ? "Checked" : "") " vrunMain gmainSettings x20 y175 " . sectionColor, % currentDictionary.Txt_runMain
+   Gui, Add, Edit, % "vMains w50 x125 y175 h20 -E0x200 Background2A2A2A " . sectionColor . " Center" . (runMain ? "" : " Hidden"), %Mains%
 
    sectionColor := "c39FF14"
-   Gui, Add, GroupBox, x5 y185 w240 h175 %sectionColor%, % currentDictionary.BotSettings
+   Gui, Add, GroupBox, x5 y210 w240 h175 %sectionColor%, % currentDictionary.BotSettings
 
    if (deleteMethod = "Create Bots (13P)")
    defaultDelete := 1
@@ -360,7 +364,7 @@ NextStep:
    Gui, Add, Picture, gShowToolsAndSystemSettings x555 y322 w32 h32, %A_ScriptDir%\GUI\Images\tools-icon.png
 
    sectionColor := "cWhite"
-   Gui, Add, GroupBox, x611 y0 w175 h360 %sectionColor%
+   Gui, Add, GroupBox, x611 y0 w175 h410 %sectionColor%
 
    Gui, Font, s12 cWhite Bold
    Gui, Add, Text, x621 y20 w155 h50 Left BackgroundTrans cWhite, % currentDictionary.title_main
@@ -370,12 +374,14 @@ NextStep:
    Gui, Add, Picture, gBuyMeCoffee x625 y60, %A_ScriptDir%\GUI\Images\support_me_on_kofi.png
 
    Gui, Font, s10 cWhite Bold
-   Gui, Add, Button, x621 y205 w155 h25 gBalanceXMLs BackgroundTrans, % currentDictionary.btn_balance
-   Gui, Add, Button, x621 y240 w155 h40 gLaunchAllMumu BackgroundTrans, % currentDictionary.btn_mumu
-   Gui, Add, Button, gSave x621 y290 w155 h40, Start Bot
+   Gui, Add, Button, x621 y205 w155 h25 gCheckForUpdates BackgroundTrans, Check for Updates
+   Gui, Add, Checkbox, % (checkForUpdates ? "Checked" : "") " vcheckForUpdates x621 y235 " . sectionColor, Auto-check updates
+   Gui, Add, Button, x621 y265 w155 h25 gBalanceXMLs BackgroundTrans, % currentDictionary.btn_balance
+   Gui, Add, Button, x621 y300 w155 h40 gLaunchAllMumu BackgroundTrans, % currentDictionary.btn_mumu
+   Gui, Add, Button, gSave x621 y350 w155 h40, Start Bot
 
    Gui, Font, s7 cGray
-   Gui, Add, Text, x620 y340 w165 Center BackgroundTrans, CC BY-NC 4.0 international license
+   Gui, Add, Text, x620 y395 w165 Center BackgroundTrans, CC BY-NC 4.0 international license
 
    Gui, Show, w%GUI_WIDTH% h%GUI_HEIGHT%, Arturo's PTCGP BOT
 
@@ -1900,6 +1906,8 @@ LoadSettingsFromIni() {
       IniRead, waitTime, Settings.ini, UserSettings, waitTime, 5
       IniRead, swipeSpeed, Settings.ini, UserSettings, swipeSpeed, 500
       IniRead, slowMotion, Settings.ini, UserSettings, slowMotion, 1 ; default is now OFF for no-mod-menu support
+      IniRead, checkForUpdates, Settings.ini, UserSettings, checkForUpdates, 1
+      IniRead, mumuRestartRuns, Settings.ini, UserSettings, mumuRestartRuns, 10
       
       IniRead, SelectedMonitorIndex, Settings.ini, UserSettings, SelectedMonitorIndex, 1
       IniRead, defaultLanguage, Settings.ini, UserSettings, defaultLanguage, Scale125
@@ -2140,7 +2148,7 @@ SaveAllSettings() {
    global InvalidCheck, ImmersiveCheck, PseudoGodPack, minStars, Palkia, Dialga, Arceus, Shining
    global Mew, Pikachu, Charizard, Mewtwo, Solgaleo, Lunala, Buzzwole, Eevee, HoOh, Lugia, Springs, Deluxe
    global MegaGyarados, MegaBlaziken, MegaAltaria, CrimsonBlaze, Parade
-   global slowMotion, ocrLanguage, clientLanguage
+   global slowMotion, ocrLanguage, clientLanguage, mumuRestartRuns, checkForUpdates
    global CurrentVisibleSection, heartBeatDelay, sendAccountXml, showcaseEnabled, isDarkTheme
    global useBackgroundImage, tesseractPath, debugMode, useTesseract, statusMessage
    global s4tEnabled, s4tSilent, s4t3Dmnd, s4t4Dmnd, s4t1Star, s4tGholdengo, s4tWP, s4tWPMinCards
@@ -2185,6 +2193,8 @@ SaveAllSettings() {
    iniContent .= "runMain=" runMain "`n"
    iniContent .= "autoUseGPTest=" autoUseGPTest "`n"
    iniContent .= "slowMotion=" slowMotion "`n"
+   iniContent .= "checkForUpdates=" checkForUpdates "`n"
+   iniContent .= "mumuRestartRuns=" mumuRestartRuns "`n"
    iniContent .= "autoLaunchMonitor=" autoLaunchMonitor "`n"
    iniContent .= "applyRoleFilters=" applyRoleFilters "`n"
    iniContent .= "debugMode=" debugMode "`n"
